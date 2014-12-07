@@ -6,12 +6,19 @@ import java.sql.*;
 import java.io.*;
 import java.util.*;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
+//sql database setup commands 
+//CREATE DATABASE boilerMeetup
+//CREATE TABLE events (id INTEGER, name VARCHAR(60), position VARCHAR(256), location VARCHAR(256), description VARCHAR(256), startTime TIMESTAMP, endTime TIMESTAMP, numAttendees INTEGER);
 
 ///////////////////////////// Mutlithreaded Server /////////////////////////////
 
-public class EventServer 
+public class boilerServer 
 {
-   final static int port = 5555;
+   final static int port = 3111;
 
    static void printUsage() {
    	System.out.println("In another window type:");
@@ -77,7 +84,7 @@ class ThreadedHandler implements Runnable
    }
 
 
-   void getAllPets( String [] args, PrintWriter out) {
+   void getAllEvents( String [] args, PrintWriter out) {
 
       Connection conn=null;
       try
@@ -85,7 +92,7 @@ class ThreadedHandler implements Runnable
 	conn = getConnection();
         Statement stat = conn.createStatement();
 	
-	ResultSet result = stat.executeQuery( "SELECT * FROM pet");
+	ResultSet result = stat.executeQuery( "SELECT * FROM events");
 
 	while(result.next()) {
        		out.print(result.getString(1)+"|");
@@ -113,14 +120,14 @@ class ThreadedHandler implements Runnable
       }
    }
 
-   void getPetInfo( String [] args, PrintWriter out) {
+   void getEventInfo( String [] args, PrintWriter out) {
 
       Connection conn=null;
       try
       {
 	conn = getConnection();
 
-	PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM pet WHERE name LIKE ?");
+	PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM events WHERE name LIKE ?");
 	pstmt.setString(1, args[3]); 
 	ResultSet result = pstmt.executeQuery();
 
@@ -152,13 +159,13 @@ class ThreadedHandler implements Runnable
    /**
     *This will add a new pet to the database
     */
-   void addPet(String[] args, PrintWriter out) {
+   void addEvent(String[] args, PrintWriter out) {
    	Connection conn = null;
 
 	try{
 		conn = getConnection();
 		conn.setAutoCommit(true);
-		String sql = "INSERT INTO pet VALUES(?,?,?,?,?)";
+		String sql = "INSERT INTO events VALUES(?,?,?,?,?)";
 		PreparedStatement pstmt = conn.prepareStatement(sql);
 		String[] petInfo = args[3].split(",");
 	
@@ -180,13 +187,42 @@ class ThreadedHandler implements Runnable
       }
    }
 
-   void handleRequest( InputStream inStream, OutputStream outStream) {
+   void handleRequest( InputStream inStream, OutputStream outStream) 
+   {
         Scanner in = new Scanner(inStream);         
-        PrintWriter out = new PrintWriter(outStream, 
-                                      true /* autoFlush */);
+        PrintWriter out = new PrintWriter(outStream, true /* autoFlush */);
 
 	// Get parameters of the call
-	String request = in.nextLine();
+	String request = "fail";
+	while(in.hasNextLine()){
+    	request=in.nextLine();
+    //...
+	}
+	
+	//System.out.println(request);
+	
+	Object obj = null;
+	JSONObject jso = (JSONObject) obj;
+	
+	JSONParser parser = new JSONParser();
+	
+//BufferedReader br = new BufferedReader(new InputStreamReader(inStream));
+	try{
+		obj = parser.parse(request);
+	}catch(Exception e)
+	{
+		System.out.println("HERE" + e.toString());
+		out.println(e.toString());
+	}
+	
+	JSONObject jsonObject = (JSONObject) obj;
+	System.out.println(jsonObject.toJSONString());
+	String req = (String) jsonObject.get("location");
+	System.out.println("Request= "+req);
+	
+	
+	/*
+	//String request = in.nextLine();
 
 	System.out.println("Request="+request);
 
@@ -216,14 +252,14 @@ class ThreadedHandler implements Runnable
 		}
 
 		// Do the operation
-		if (command.equals("GET-ALL-PETS")) {
-			getAllPets(args, out);
+		if (command.equals("GET-ALL-EVENTS")) {
+			getAllEvents(args, out);
 		}
-		else if (command.equals("GET-PET-INFO")) {
-			getPetInfo(args, out);
+		else if (command.equals("GET-EVENT-INFO")) {
+			getEventInfo(args, out);
 		}
-		else if (command.equals("ADD-PET")) {
-			addPet(args, out);
+		else if (command.equals("ADD-EVENT")) {
+			addEvent(args, out);
 		}
 		
 	}
@@ -233,7 +269,7 @@ class ThreadedHandler implements Runnable
 
 		System.out.println(e.toString());
 		out.println(e.toString());
-	}
+	}*/
    }
 
    public void run() {  

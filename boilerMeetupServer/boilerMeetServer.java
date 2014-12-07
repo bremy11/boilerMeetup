@@ -42,18 +42,6 @@ public class boilerMeetServer {
                 }
                 
                 
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
             } catch (IOException e) {
                 log("Error handling client# " + clientNumber + ": " + e);
             } finally {
