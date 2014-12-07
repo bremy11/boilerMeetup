@@ -1,4 +1,4 @@
-Progress and Ideas:			Last Updated (12/07/14 - 5:25pm) by Rachel Gully
+Progress and Ideas:			Last Updated by Rachel Gully
 
 keep username and password as variables in the code (DONE)
 
@@ -6,32 +6,32 @@ keep username and password as variables in the code (DONE)
 Still need to consider:
 	Query by event types (Save for Last)
 
-In the JSON Object during communication w/ the app…
+In the JSON Object during communication w/ the app…(Server to app):
 	We receive the command first
 	Send the number of requests first
 
 
 JSON Object Fields (Receiving):
-	COMMAND
-	id
-	name
-	position
-	location
-	description
-	startTime
-	endTime
-	numAttendees
+	command		(String)
+	id	 	(int)
+	name		(String)
+	position	(String)
+	location	(String)
+	description	(String)
+	startTime	(String)
+	endTime		(String)
+	numAttendees	(int)
 
 JSON Object Fields (Sending):
-	NUMEVENTS
-	id
-	name
-	position
-	location
-	description
-	startTime
-	endTime
-	numAttendees
+	numEvents	(int)
+	id		(int)
+	name		(String)
+	position	(String)
+	location	(String)
+	description	(String)
+	startTime	(String)
+	endTime		(String)
+	numAttendees	(int)
 
 Requests:
 	GET-ALL-EVENTS:   For refreshing all of the events

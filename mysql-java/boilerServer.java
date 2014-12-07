@@ -19,20 +19,22 @@ import org.json.simple.parser.ParseException;
 public class boilerServer 
 {
    final static int port = 3111;
-
-   static void printUsage() {
+   /**
+    *Usage is useless now that we will be using JSON objects
+    */
+   /*static void printUsage() {
    	System.out.println("In another window type:");
    	System.out.println("telnet sslabXX.cs.purdue.edu " + port);
-	System.out.println("GET-ALL-PETS|user|password");
-	System.out.println("GET-PET-INFO|user|password|Fido");
-	System.out.println("ADD-PET|user|password|Fido,Peter,dog,m,2010-02-11");
-   }
+	System.out.println("GET-ALL-EVENTS");
+	System.out.println("GET-EVENT-INFO|id");
+	System.out.println("ADD-EVENT");
+   }*/
 
    public static void main(String[] args )
    {  
       try
       {  
-         printUsage();
+         //printUsage();
          int i = 1;
          ServerSocket s = new ServerSocket(port);
 	 while (true)
@@ -78,29 +80,52 @@ class ThreadedHandler implements Runnable
       String username = props.getProperty("jdbc.username");
       String password = props.getProperty("jdbc.password");
 
-      System.out.println("url="+url+" user="+username+" password="+password);
+      System.out.println("url="+url+" user="+ServerUser+" password="+ServerPassword);
 
-      return DriverManager.getConnection( url, username, password);
+      return DriverManager.getConnection( url, ServerUser, ServerPassword);
    }
 
 
+   /**
+    *This function will send all of the current events
+    *  that are in the db to populate the app's map.
+    *  Here we use JSON objects to store and send the data
+    */
    void getAllEvents( String [] args, PrintWriter out) {
 
       Connection conn=null;
       try
       {
+	int numEvents = 0;
 	conn = getConnection();
-        Statement stat = conn.createStatement();
+        Statement q1 = conn.createStatement();
+	Statement q2 = conn.createStatement();
 	
-	ResultSet result = stat.executeQuery( "SELECT * FROM events");
-
-	while(result.next()) {
-       		out.print(result.getString(1)+"|");
-       		out.print(result.getString(2)+"|");
-       		out.print(result.getString(3)+"|");
-       		out.print(result.getString(4)+"|");
-       		out.print(result.getString(5));
-		out.println("");
+	ResultSet r1 = stat.executeQuery("SELECT COUNT(id) FROM events");
+	ResultSet r2 = stat.executeQuery( "SELECT * FROM events");
+	
+	//Create a JSON Obj
+	JSONObject obj = new JSONObject();
+	
+	//Get the current number of events
+	while(r1.next()) {
+		numEvents = Integer.parseInt(r1.getString(1));
+	}
+	
+	//send the events to the app
+	while(r2.next()) {
+		obj.put("eventCount", numEvents);
+		obj.put("id",  Integer.parseInt(r2.getString(1)) );
+		obj.put("name", r2.getString(2));
+		obj.put("position", r2.getString(3));
+		obj.put("location", r2.getString(4));
+		obj.put("description", r2.getString(5));
+		 //might have to handle these differently since these are timestamps
+		obj.put("startTime", r2.getString(6));
+		obj.put("endTime", r2.getString(7));
+		////
+		obj.put("numAttendees", Integer.parseInt(r2.getString(8)) );
+		out.println(obj.toJSONStirng());
 	}
 
 	result.close();
@@ -120,6 +145,9 @@ class ThreadedHandler implements Runnable
       }
    }
 
+   /**
+    *This will return the information for a specific event
+    */
    void getEventInfo( String [] args, PrintWriter out) {
 
       Connection conn=null;
@@ -128,18 +156,23 @@ class ThreadedHandler implements Runnable
 	conn = getConnection();
 
 	PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM events WHERE name LIKE ?");
-	pstmt.setString(1, args[3]); 
+	pstmt.setString(1, args[1]); 
 	ResultSet result = pstmt.executeQuery();
 
 	while(result.next()) {
-       		out.print(result.getString(1)+"|");
-       		out.print(result.getString(2)+"|");
-       		out.print(result.getString(3)+"|");
-       		out.print(result.getString(4)+"|");
-       		out.print(result.getString(5));
-		out.println("");
+		obj.put("eventCount", numEvents);
+		obj.put("id",  Integer.parseInt(result.getString(1)) );
+		obj.put("name", result.getString(2));
+		obj.put("position", result.getString(3));
+		obj.put("location", result.getString(4));
+		obj.put("description", result.getString(5));
+		 //might have to handle these differently since these are timestamps
+		obj.put("startTime", result.getString(6));
+		obj.put("endTime", result.getString(7));
+		////
+		obj.put("numAttendees", Integer.parseInt(result.getString(8)) );
+		out.println(obj.toJSONStirng());
 	}
-
 	result.close();
       }
       catch (Exception e) {
@@ -167,7 +200,7 @@ class ThreadedHandler implements Runnable
 		conn.setAutoCommit(true);
 		String sql = "INSERT INTO events VALUES(?,?,?,?,?)";
 		PreparedStatement pstmt = conn.prepareStatement(sql);
-		String[] petInfo = args[3].split(",");
+		String[] petInfo = args[1].split(",");
 	
 		for(int i = 0; i < petInfo.length; i++) {
 			pstmt.setString(i + 1, petInfo[i]);
@@ -217,51 +250,38 @@ class ThreadedHandler implements Runnable
 	
 	JSONObject jsonObject = (JSONObject) obj;
 	System.out.println(jsonObject.toJSONString());
-	String req = (String) jsonObject.get("location");
-	System.out.println("Request= "+req);
-	
-	
-	/*
-	//String request = in.nextLine();
+	String req = (String) jsonObject.get("command");
 
-	System.out.println("Request="+request);
-
-	String requestSyntax = "Syntax: COMMAND|USER|PASSWORD|OTHER|ARGS";
+	/**
+	 *The JSON Object has the following fields:
+	 *	command
+	 * 	id
+	 *	name
+	 *	position
+	 *	location
+	 *	description
+	 *	startTime
+	 *	endTime
+	 *	numAttendees
+         */
 
 	try {
-		// Get arguments.
-		// The format is COMMAND|USER|PASSWORD|OTHER|ARGS...
-		String [] args = request.split("\\|");
-		
-		// Print arguments
-		for (int i = 0; i < args.length; i++) {
-			System.out.println("Arg "+i+": "+args[i]);
-		}
-
-		// Get command and password
-		String command = args[0];
-		String user = args[1];
-		String password = args[2];
-
-		// Check user and password. Now it is sent in plain text.
-		// You should use Secure Sockets (SSL) for a production environment.
-		if ( !user.equals(ServerUser) || !password.equals(ServerPassword)) {
-			System.out.println("Bad user or password");
-			out.println("Bad user or password");
-			return;
-		}
-
 		// Do the operation
-		if (command.equals("GET-ALL-EVENTS")) {
+		if (req.equals("GET-ALL-EVENTS")) {
 			getAllEvents(args, out);
 		}
-		else if (command.equals("GET-EVENT-INFO")) {
+		else if (request.equals("GET-EVENT-INFO")) {
 			getEventInfo(args, out);
 		}
-		else if (command.equals("ADD-EVENT")) {
+		else if (request.equals("GET-CNT")) {
+			getCount(args, out);
+		}
+		else if (request.equals("ADD-EVENT")) {
 			addEvent(args, out);
 		}
-		
+		else if (request.equals("DEL-EVENT")) {
+			deleteEvent(args, out);
+		}
 	}
 	catch (Exception e) {		
 		System.out.println(requestSyntax);
@@ -269,7 +289,7 @@ class ThreadedHandler implements Runnable
 
 		System.out.println(e.toString());
 		out.println(e.toString());
-	}*/
+	}
    }
 
    public void run() {  

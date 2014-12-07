@@ -11,16 +11,24 @@ import java.util.*;
 
 public class EventServer 
 {
-   final static int port = 3111;
+   final static int port = 5555;
 
+   /**
+    *Usage
+    */
    static void printUsage() {
    	System.out.println("In another window type:");
    	System.out.println("telnet sslabXX.cs.purdue.edu " + port);
-	System.out.println("GET-ALL-PETS|user|password");
-	System.out.println("GET-PET-INFO|user|password|Fido");
-	System.out.println("ADD-PET|user|password|Fido,Peter,dog,m,2010-02-11");
+	System.out.println("GET-ALL-PETS");
+	System.out.println("GET-PET-INFO|Fido");
+	System.out.println("ADD-PET|Fido,Peter,dog,m,2010-02-11");
+	System.out.println("DEL-PET|Fido");
+	System.out.println("GET-CNT");
    }
 
+   /**
+    * Main
+    */
    public static void main(String[] args )
    {  
       try
@@ -53,11 +61,17 @@ class ThreadedHandler implements Runnable
    final static String ServerUser = "root";
    final static String ServerPassword = "1827";
 
+   /**
+    * Constructor
+    */
    public ThreadedHandler(Socket i)
    { 
       incoming = i; 
    }
 
+   /**
+    * Return a connection to the MySQL db
+    */
    public static Connection getConnection() throws SQLException, IOException
    {
       Properties props = new Properties();
@@ -68,15 +82,15 @@ class ThreadedHandler implements Runnable
       if (drivers != null)
         System.setProperty("jdbc.drivers", drivers);
       String url = props.getProperty("jdbc.url");
-      String username = props.getProperty("jdbc.username");
-      String password = props.getProperty("jdbc.password");
 
-      System.out.println("url="+url+" user="+username+" password="+password);
+      System.out.println("url="+url+" user="+ ServerUser + " password=" + ServerPassword);
 
-      return DriverManager.getConnection( url, username, password);
+      return DriverManager.getConnection( url, ServerUser, ServerPassword);
    }
 
-
+   /**
+    * Return all pets in the db
+    */ 
    void getAllPets( String [] args, PrintWriter out) {
 
       Connection conn=null;
@@ -113,6 +127,9 @@ class ThreadedHandler implements Runnable
       }
    }
 
+   /**
+    * Print the info of the specified pet
+    */
    void getPetInfo( String [] args, PrintWriter out) {
 
       Connection conn=null;
@@ -121,7 +138,7 @@ class ThreadedHandler implements Runnable
 	conn = getConnection();
 
 	PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM pet WHERE name LIKE ?");
-	pstmt.setString(1, args[3]); 
+	pstmt.setString(1, args[1]); 
 	ResultSet result = pstmt.executeQuery();
 
 	while(result.next()) {
@@ -160,7 +177,7 @@ class ThreadedHandler implements Runnable
 		conn.setAutoCommit(true);
 		String sql = "INSERT INTO pet VALUES(?,?,?,?,?)";
 		PreparedStatement pstmt = conn.prepareStatement(sql);
-		String[] petInfo = args[3].split(",");
+		String[] petInfo = args[1].split(",");
 	
 		for(int i = 0; i < petInfo.length; i++) {
 			pstmt.setString(i + 1, petInfo[i]);
@@ -179,7 +196,66 @@ class ThreadedHandler implements Runnable
 		}
       }
    }
+  
+   /**
+    * Delete the specified pet from the database
+    */
+   void deletePet(String[] args, PrintWriter out) {
+   	Connection conn = null;
+	try{
+		conn = getConnection();
+		conn.setAutoCommit(true);
+		String sql = "DELETE FROM pet WHERE name = ?";
+		PreparedStatement pstmt = conn.prepareStatement(sql);
+		pstmt.setString(1, args[1]);
+		pstmt.executeUpdate();
+	}
+	catch(Exception e) {
+		System.out.println(e.toString());
+		out.println(e.toString());
+	}
+      	finally {
+		try {
+         		if (conn!=null) conn.close();
+		}
+		catch (Exception e) {
+		}
+      }
+   }
 
+   /**
+    * Return the number of pets in the db
+    */
+   void getCount(String[] args, PrintWriter out) {
+   	Connection conn = null;
+	try{
+		conn = getConnection();
+		String sql = "SELECT COUNT(name) FROM pet";
+		PreparedStatement pstmt = conn.prepareStatement(sql);
+		ResultSet result = pstmt.executeQuery();
+
+		while(result.next()) {
+			out.print("The number of pets is " + result.getString(1));
+			out.println("");
+		}
+		result.close();
+	}
+	catch(Exception e) {
+		System.out.println(e.toString());
+		out.println(e.toString());
+	}
+      	finally {
+		try {
+         		if (conn!=null) conn.close();
+		}
+		catch (Exception e) {
+		}
+      }
+   }
+
+   /**
+    * Parse the request to determine which operations to perform
+    */
    void handleRequest( InputStream inStream, OutputStream outStream) {
         Scanner in = new Scanner(inStream);         
         PrintWriter out = new PrintWriter(outStream, 
@@ -194,7 +270,7 @@ class ThreadedHandler implements Runnable
 
 	try {
 		// Get arguments.
-		// The format is COMMAND|USER|PASSWORD|OTHER|ARGS...
+		// The format is COMMAND|OTHER|ARGS...
 		String [] args = request.split("\\|");
 		
 		// Print arguments
@@ -204,16 +280,6 @@ class ThreadedHandler implements Runnable
 
 		// Get command and password
 		String command = args[0];
-		String user = args[1];
-		String password = args[2];
-
-		// Check user and password. Now it is sent in plain text.
-		// You should use Secure Sockets (SSL) for a production environment.
-		if ( !user.equals(ServerUser) || !password.equals(ServerPassword)) {
-			System.out.println("Bad user or password");
-			out.println("Bad user or password");
-			return;
-		}
 
 		// Do the operation
 		if (command.equals("GET-ALL-PETS")) {
@@ -224,6 +290,12 @@ class ThreadedHandler implements Runnable
 		}
 		else if (command.equals("ADD-PET")) {
 			addPet(args, out);
+		}
+		else if (command.equals("DEL-PET")) {
+			deletePet(args, out);	
+		}
+		else if (command.equals("GET-CNT")) {
+			getCount(args, out);
 		}
 		
 	}
@@ -236,6 +308,9 @@ class ThreadedHandler implements Runnable
 	}
    }
 
+   /**
+    * Will start the thread and run continuously
+    */
    public void run() {  
       try
       {  
@@ -244,7 +319,6 @@ class ThreadedHandler implements Runnable
             InputStream inStream = incoming.getInputStream();
             OutputStream outStream = incoming.getOutputStream();
 	    handleRequest(inStream, outStream);
-
          }
       	 catch (IOException e)
          {  
