@@ -18,8 +18,8 @@ JSON Object Fields (Receiving):
 	position	(String)
 	location	(String)
 	description	(String)
-	startTime	(String)
-	endTime		(String)
+	startTime	(String)	//format is:  YYYY-MM-DD HH:MM:SS
+	endTime		(String)	//format is:  YYYY-MM-DD HH:MM:SS
 	numAttendees	(int)
 
 JSON Object Fields (Sending):
@@ -29,13 +29,23 @@ JSON Object Fields (Sending):
 	position	(String)
 	location	(String)
 	description	(String)
-	startTime	(String)
-	endTime		(String)
+	startTime	(String)	//format is:  YYYY-MM-DD HH:MM:SS
+	endTime		(String)	//format is:  YYYY-MM-DD HH:MM:SS
+	numAttendees	(int)
+
+fields to add/delete to/from the db:
+	id		(int)
+	name		(String)
+	position	(String)
+	location	(String)
+	description	(String)
+	startTime	(String)	//format is:  YYYY-MM-DD HH:MM:SS
+	endTime		(String)	//format is:  YYYY-MM-DD HH:MM:SS
 	numAttendees	(int)
 
 Requests:
 	GET-ALL-EVENTS:   For refreshing all of the events
-	GET-EVENT-INFO:   Getting the information of a specified event
+	GET-EVENT-INFO:   Getting the information of a specified event with (using the id field)
 	GET-CNT:	  Getting the total number of events
 	ADD-EVENT:	  Add the specified event to the db
 	DEL-EVENT:	  Delete the specified event from the db

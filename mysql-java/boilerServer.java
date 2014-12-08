@@ -18,304 +18,382 @@ import org.json.simple.parser.ParseException;
 
 public class boilerServer 
 {
-   final static int port = 3111;
-   /**
-    *Usage is useless now that we will be using JSON objects
-    */
-   /*static void printUsage() {
-   	System.out.println("In another window type:");
-   	System.out.println("telnet sslabXX.cs.purdue.edu " + port);
-	System.out.println("GET-ALL-EVENTS");
-	System.out.println("GET-EVENT-INFO|id");
-	System.out.println("ADD-EVENT");
-   }*/
+	final static int port = 3111;
+	/**
+	 *Usage is useless now that we will be using JSON objects
+	 */
+	/*static void printUsage() {
+	  System.out.println("In another window type:");
+	  System.out.println("telnet sslabXX.cs.purdue.edu " + port);
+	  System.out.println("GET-ALL-EVENTS");
+	  System.out.println("GET-EVENT-INFO|id");
+	  System.out.println("ADD-EVENT");
+	  }*/
 
-   public static void main(String[] args )
-   {  
-      try
-      {  
-         //printUsage();
-         int i = 1;
-         ServerSocket s = new ServerSocket(port);
-	 while (true)
-         {  
-            Socket incoming = s.accept();
-            System.out.println("Spawning " + i);
-            Runnable r = new ThreadedHandler(incoming);
-            Thread t = new Thread(r);
-            t.start();
-            i++;
-         }
-      }
-      catch (IOException e)
-      {  
-         e.printStackTrace();
-      }
-   }
+	//main
+	public static void main(String[] args )
+	{  
+		try
+		{  
+			//printUsage();
+			int i = 1;
+			ServerSocket s = new ServerSocket(port);
+			while (true)
+			{  
+				Socket incoming = s.accept();
+				System.out.println("Spawning " + i);
+				Runnable r = new ThreadedHandler(incoming);
+				Thread t = new Thread(r);
+				t.start();
+				i++;
+			}
+		}
+		catch (IOException e)
+		{  
+			e.printStackTrace();
+		}
+	}
 }
 
 /**
-   This class handles the client input for one server socket connection. 
-*/
+  This class handles the client input for one server socket connection. 
+ */
 class ThreadedHandler implements Runnable
 { 
-   final static String ServerUser = "root";
-   final static String ServerPassword = "1827";
+	final static String ServerUser = "root";
+	final static String ServerPassword = "1827";
 
-   public ThreadedHandler(Socket i)
-   { 
-      incoming = i; 
-   }
-
-   public static Connection getConnection() throws SQLException, IOException
-   {
-      Properties props = new Properties();
-      FileInputStream in = new FileInputStream("database.properties");
-      props.load(in);
-      in.close();
-      String drivers = props.getProperty("jdbc.drivers");
-      if (drivers != null)
-        System.setProperty("jdbc.drivers", drivers);
-      String url = props.getProperty("jdbc.url");
-      String username = props.getProperty("jdbc.username");
-      String password = props.getProperty("jdbc.password");
-
-      System.out.println("url="+url+" user="+ServerUser+" password="+ServerPassword);
-
-      return DriverManager.getConnection( url, ServerUser, ServerPassword);
-   }
-
-
-   /**
-    *This function will send all of the current events
-    *  that are in the db to populate the app's map.
-    *  Here we use JSON objects to store and send the data
-    */
-   void getAllEvents( String [] args, PrintWriter out) {
-
-      Connection conn=null;
-      try
-      {
-	int numEvents = 0;
-	conn = getConnection();
-        Statement q1 = conn.createStatement();
-	Statement q2 = conn.createStatement();
-	
-	ResultSet r1 = stat.executeQuery("SELECT COUNT(id) FROM events");
-	ResultSet r2 = stat.executeQuery( "SELECT * FROM events");
-	
-	//Create a JSON Obj
-	JSONObject obj = new JSONObject();
-	
-	//Get the current number of events
-	while(r1.next()) {
-		numEvents = Integer.parseInt(r1.getString(1));
-	}
-	
-	//send the events to the app
-	while(r2.next()) {
-		obj.put("eventCount", numEvents);
-		obj.put("id",  Integer.parseInt(r2.getString(1)) );
-		obj.put("name", r2.getString(2));
-		obj.put("position", r2.getString(3));
-		obj.put("location", r2.getString(4));
-		obj.put("description", r2.getString(5));
-		 //might have to handle these differently since these are timestamps
-		obj.put("startTime", r2.getString(6));
-		obj.put("endTime", r2.getString(7));
-		////
-		obj.put("numAttendees", Integer.parseInt(r2.getString(8)) );
-		out.println(obj.toJSONStirng());
+	public ThreadedHandler(Socket i)
+	{ 
+		incoming = i; 
 	}
 
-	result.close();
-
-      }
-      catch (Exception e) {
-	System.out.println(e.toString());
-	out.println(e.toString());
-      }
-      finally
-      {
-	try {
-         if (conn!=null) conn.close();
-	}
-	catch (Exception e) {
-	}
-      }
-   }
-
-   /**
-    *This will return the information for a specific event
-    */
-   void getEventInfo( String [] args, PrintWriter out) {
-
-      Connection conn=null;
-      try
-      {
-	conn = getConnection();
-
-	PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM events WHERE name LIKE ?");
-	pstmt.setString(1, args[1]); 
-	ResultSet result = pstmt.executeQuery();
-
-	while(result.next()) {
-		obj.put("eventCount", numEvents);
-		obj.put("id",  Integer.parseInt(result.getString(1)) );
-		obj.put("name", result.getString(2));
-		obj.put("position", result.getString(3));
-		obj.put("location", result.getString(4));
-		obj.put("description", result.getString(5));
-		 //might have to handle these differently since these are timestamps
-		obj.put("startTime", result.getString(6));
-		obj.put("endTime", result.getString(7));
-		////
-		obj.put("numAttendees", Integer.parseInt(result.getString(8)) );
-		out.println(obj.toJSONStirng());
-	}
-	result.close();
-      }
-      catch (Exception e) {
-	System.out.println(e.toString());
-	out.println(e.toString());
-      }
-      finally
-      {
-	try {
-         if (conn!=null) conn.close();
-	}
-	catch (Exception e) {
-	}
-      }
-   }   
-   
-   /**
-    *This will add a new pet to the database
-    */
-   void addEvent(String[] args, PrintWriter out) {
-   	Connection conn = null;
-
-	try{
-		conn = getConnection();
-		conn.setAutoCommit(true);
-		String sql = "INSERT INTO events VALUES(?,?,?,?,?)";
-		PreparedStatement pstmt = conn.prepareStatement(sql);
-		String[] petInfo = args[1].split(",");
-	
-		for(int i = 0; i < petInfo.length; i++) {
-			pstmt.setString(i + 1, petInfo[i]);
-		}
-		pstmt.executeUpdate();
-	}
-	catch(Exception e) {
-		System.out.println(e.toString());
-		out.println(e.toString());
-	}
-      	finally {
-		try {
-         		if (conn!=null) conn.close();
-		}
-		catch (Exception e) {
-		}
-      }
-   }
-
-   void handleRequest( InputStream inStream, OutputStream outStream) 
-   {
-        Scanner in = new Scanner(inStream);         
-        PrintWriter out = new PrintWriter(outStream, true /* autoFlush */);
-
-	// Get parameters of the call
-	String request = "fail";
-	while(in.hasNextLine()){
-    	request=in.nextLine();
-    //...
-	}
-	
-	//System.out.println(request);
-	
-	Object obj = null;
-	JSONObject jso = (JSONObject) obj;
-	
-	JSONParser parser = new JSONParser();
-	
-//BufferedReader br = new BufferedReader(new InputStreamReader(inStream));
-	try{
-		obj = parser.parse(request);
-	}catch(Exception e)
+	public static Connection getConnection() throws SQLException, IOException
 	{
-		System.out.println("HERE" + e.toString());
-		out.println(e.toString());
+		Properties props = new Properties();
+		FileInputStream in = new FileInputStream("database.properties");
+		props.load(in);
+		in.close();
+		String drivers = props.getProperty("jdbc.drivers");
+		if (drivers != null)
+			System.setProperty("jdbc.drivers", drivers);
+		String url = props.getProperty("jdbc.url");
+		String username = props.getProperty("jdbc.username");
+		String password = props.getProperty("jdbc.password");
+
+		System.out.println("url="+url+" user="+ServerUser+" password="+ServerPassword);
+
+		return DriverManager.getConnection( url, ServerUser, ServerPassword);
 	}
-	
-	JSONObject jsonObject = (JSONObject) obj;
-	System.out.println(jsonObject.toJSONString());
-	String req = (String) jsonObject.get("command");
+
 
 	/**
-	 *The JSON Object has the following fields:
-	 *	command
-	 * 	id
-	 *	name
-	 *	position
-	 *	location
-	 *	description
-	 *	startTime
-	 *	endTime
-	 *	numAttendees
-         */
+	 *This function will send all of the current events
+	 *  that are in the db to populate the app's map.
+	 *  Here we use JSON objects to store and send the data
+	 */
+	void getAllEvents(PrintWriter out) {
 
-	try {
-		// Do the operation
-		if (req.equals("GET-ALL-EVENTS")) {
-			getAllEvents(args, out);
+		Connection conn=null;
+		try
+		{	
+			String numEvents = null;
+			conn = getConnection();
+			Statement q1 = conn.createStatement();
+			Statement q2 = conn.createStatement();
+
+			ResultSet r1 = stat.executeQuery("SELECT COUNT(id) FROM events");
+			ResultSet r2 = stat.executeQuery( "SELECT * FROM events");
+
+			//Create a JSON Obj
+			JSONObject obj = new JSONObject();
+
+			//Get the current number of events
+			while(r1.next()) {
+				numEvents = r1.getString(1);
+			}
+
+			//send the events to the app
+			while(r2.next()) {
+				obj.put("eventCount", 	numEvents);
+				obj.put("id",  		r2.getString(1));
+				obj.put("name", 	r2.getString(2));
+				obj.put("position",	r2.getString(3));
+				obj.put("location", 	r2.getString(4));
+				obj.put("description", 	r2.getString(5));
+				//might have to handle these differently since these are timestamps
+				obj.put("startTime", 	r2.getString(6));
+				obj.put("endTime", 	r2.getString(7));
+				////
+				obj.put("numAttendees", r2.getString(8));
+				//send event
+				out.print(obj.toJSONStirng());
+			}
+			result.close();
+
 		}
-		else if (request.equals("GET-EVENT-INFO")) {
-			getEventInfo(args, out);
+		catch (Exception e) {
+			System.out.println(e.toString());
+			out.println(e.toString());
 		}
-		else if (request.equals("GET-CNT")) {
-			getCount(args, out);
-		}
-		else if (request.equals("ADD-EVENT")) {
-			addEvent(args, out);
-		}
-		else if (request.equals("DEL-EVENT")) {
-			deleteEvent(args, out);
+		finally
+		{
+			try {
+				if (conn!=null) conn.close();
+			}
+			catch (Exception e) {
+			}
 		}
 	}
-	catch (Exception e) {		
-		System.out.println(requestSyntax);
-		out.println(requestSyntax);
 
-		System.out.println(e.toString());
-		out.println(e.toString());
+	/**
+	 *This will return the information for a specific event
+	 */
+	void getEventInfo( JSONObject obj, PrintWriter out) {
+
+		Connection conn=null;
+		try
+		{	
+			//get a conncetion
+			conn = getConnection();
+			//set the prepared statement
+			PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM events WHERE id LIKE ?");
+			pstmt.setString(1, obj.get("id"));
+			//execute the query
+			ResultSet result = pstmt.executeQuery();
+			
+			//create a new JSON object
+			JSONObject newEvent = new JSONObject();
+
+			//populate & send the JSON object
+			while(result.next()) {
+				newEvent.put("eventCount", numEvents);
+				newEvent.put("id",  Integer.parseInt(result.getString(1)) );
+				newEvent.put("name", result.getString(2));
+				newEvent.put("position", result.getString(3));
+				newEvent.put("location", result.getString(4));
+				newEvent.put("descriptio", result.getString(5));
+				//might have to handle these differently since these are timestamps
+				newEvent.put("startTime", result.getString(6));
+				newEvent.put("endTime", result.getString(7));
+				////
+				newEvent.put("numAttendees", Integer.parseInt(result.getString(8)) );
+				//send info
+				out.print(newEvent.toJSONStirng());
+			}
+			//close the result
+			result.close();
+		}
+		catch (Exception e) {
+			System.out.println(e.toString());
+			out.println(e.toString());
+		}
+		finally
+		{
+			try {
+				if (conn!=null) conn.close();
+			}
+			catch (Exception e) {
+			}
+		}
 	}
-   }
+	
+	/**
+	 *This function will get the total number of events
+	 */ 
+	void getCount(PrintWriter out) {
+		Connection conn=null;
+		try
+		{	
+			//get a connection
+			conn = getConnection();
+			//set the prepared statement
+			PreparedStatement pstmt = conn.prepareStatement("SELECT COUNT(id) FROM events");
+			//execute the query
+			ResultSet result = pstmt.executeQuery();
 
-   public void run() {  
-      try
-      {  
-         try
-         {
-            InputStream inStream = incoming.getInputStream();
-            OutputStream outStream = incoming.getOutputStream();
-	    handleRequest(inStream, outStream);
+			//create a new JSON object
+			JSONObject query = new JSONObject();
+			//populate & send the JSON object
+			while(result.next()) {
+				query.put("numEvents", result.getString(1));
+				out.println(query.toJSONStirng());
+			}
+			result.close();
+		}
+		catch (Exception e) {
+			System.out.println(e.toString());
+			out.println(e.toString());
+		}
+		finally
+		{
+			try {
+				if (conn!=null) conn.close();
+			}
+			catch (Exception e) {
+			}
+		}
+	}	
 
-         }
-      	 catch (IOException e)
-         {  
-            e.printStackTrace();
-         }
-         finally
-         {
-            incoming.close();
-         }
-      }
-      catch (IOException e)
-      {  
-         e.printStackTrace();
-      }
-   }
+	/**
+	 *This will add a new event to the database
+	 */
+	void addEvent(JSONObject obj, PrintWriter out) {
+		Connection conn = null;
 
-   private Socket incoming;
+		try{
+			//get a connection & set it to change the db automatically
+			conn = getConnection();
+			conn.setAutoCommit(true);
+			String sql = "INSERT INTO events VALUES(?,?,?,?,?,?,?,?)";
+			PreparedStatement pstmt = conn.prepareStatement(sql);
+
+			//get all info from the JSON object	
+			pstmt.setString(1, obj.get("id"));
+			pstmt.setString(2, obj.get("name"));
+			pstmt.setString(3, obj.get("position"));
+			pstmt.setString(4, obj.get("location"));
+			pstmt.setString(5, obj.get("description"));
+			pstmt.setString(6, obj.get("startTime"));
+			pstmt.setString(7, obj.get("endTime"));
+			pstmt.setString(8, obj.get("numAttendees"));
+
+			//update the db
+			pstmt.executeUpdate();
+		}
+		catch(Exception e) {
+			System.out.println(e.toString());
+			out.println(e.toString());
+		}
+		finally {
+			try {
+				if (conn!=null) conn.close();
+			}
+			catch (Exception e) {}
+		}
+	}
+
+	void deleteEvent(JSONObject obj, PrintWriter out) {
+		Connection conn = null;
+
+		try{
+			//get the connection
+			conn = getConnection();
+			//set the connection to autocommit changes to the db
+			conn.setAutoCommit(true);
+			//set the prepared statement
+			String sql = "DELETE FROM events WHERE id = ?";
+			PreparedStatement pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, obj.get("id"));
+			//update the db
+			pstmt.executeUpdate();
+		}
+		catch(Exception e) {
+			System.out.println(e.toString());
+			out.println(e.toString());
+		}
+		finally {
+			try {
+				if (conn!=null) conn.close();
+			}
+			catch (Exception e) {}
+		}
+	}
+
+	void handleRequest( InputStream inStream, OutputStream outStream) 
+	{
+		Scanner in = new Scanner(inStream);         
+		PrintWriter out = new PrintWriter(outStream, true /* autoFlush */);
+
+		// Get parameters of the call
+		String request = "fail";
+		while(in.hasNextLine()){
+			request=in.nextLine();
+			//...
+		}
+
+		Object obj = null;
+		JSONObject jso = (JSONObject) obj;
+
+		JSONParser parser = new JSONParser();
+		try{
+			obj = parser.parse(request);
+		}catch(Exception e)
+		{
+			System.out.println("HERE" + e.toString());
+			out.println(e.toString());
+		}
+
+		//get the command from the JSON object	
+		JSONObject jsonObject = (JSONObject) obj;
+		System.out.println(jsonObject.toJSONString());
+		String req = (String) jsonObject.get("command");
+
+		/**
+		 *The incoming JSON Object has the following fields:
+		 *	command
+		 * 	id
+		 *	name
+		 *	position
+		 *	location
+		 *	description
+		 *	startTime
+		 *	endTime
+		 *	numAttendees
+		 */
+
+		try {
+			//perform the requested operation
+			if (req.equals("GET-ALL-EVENTS")) {
+				getAllEvents(out);
+			}
+			else if (request.equals("GET-EVENT-INFO")) {
+				getEventInfo(obj, out);
+			}
+			else if (request.equals("GET-CNT")) {
+				getCount(out);
+			}
+			else if (request.equals("ADD-EVENT")) {
+				addEvent(obj, out);
+			}
+			else if (request.equals("DEL-EVENT")) {
+				deleteEvent(obj, out);
+			}
+		}
+		catch (Exception e) {		
+			System.out.println(requestSyntax);
+			out.println(requestSyntax);
+
+			System.out.println(e.toString());
+			out.println(e.toString());
+		}
+	}
+
+	//Will run forever, handling incoming requests to the server
+	public void run() {  
+		try
+		{  
+			try
+			{
+				InputStream inStream = incoming.getInputStream();
+				OutputStream outStream = incoming.getOutputStream();
+				handleRequest(inStream, outStream);
+
+			}
+			catch (IOException e)
+			{  
+				e.printStackTrace();
+			}
+			finally
+			{
+				incoming.close();
+			}
+		}
+		catch (IOException e)
+		{  
+			e.printStackTrace();
+		}
+	}
+
+	private Socket incoming;
 }
