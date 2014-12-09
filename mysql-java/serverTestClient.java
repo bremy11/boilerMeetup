@@ -25,7 +25,8 @@ public class serverTestClient {
              
              in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
-             
+            
+             /*
              JSONObject obj = new JSONObject();
              
              
@@ -48,7 +49,7 @@ public class serverTestClient {
 			  
 			  out.println(obj.toJSONString());
 			  //System.out.println(obj.toJSONString());
-             
+             */
              // Consume the initial welcoming messages from the server
              String t;
              
