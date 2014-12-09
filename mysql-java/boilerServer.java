@@ -13,7 +13,7 @@ import org.json.simple.parser.ParseException;
 //sql database setup commands 
 //CREATE DATABASE boilerMeetup;
 //USE boilerMeetup;
-//CREATE TABLE events (id INTEGER, name VARCHAR(60), position VARCHAR(256), location VARCHAR(256), description VARCHAR(256), startTime TIMESTAMP, endTime TIMESTAMP, numAttendees INTEGER);
+//CREATE TABLE events (id INTEGER, name VARCHAR(60), long VARCHAR(256), location VARCHAR(256), description VARCHAR(256), startTime TIMESTAMP, endTime TIMESTAMP, numAttendees INTEGER, lat VARCHAR(256));
 
 ///////////////////////////// Mutlithreaded Server /////////////////////////////
 
@@ -120,7 +120,7 @@ class ThreadedHandler implements Runnable
 				obj.put("eventCount", 	numEvents);
 				obj.put("id",  		r2.getString(1));
 				obj.put("name", 	r2.getString(2));
-				obj.put("position",	r2.getString(3));
+				obj.put("long",	r2.getString(3));
 				obj.put("location", 	r2.getString(4));
 				obj.put("description", 	r2.getString(5));
 				//might have to handle these differently since these are timestamps
@@ -128,6 +128,7 @@ class ThreadedHandler implements Runnable
 				obj.put("endTime", 	r2.getString(7));
 				////
 				obj.put("numAttendees", r2.getString(8));
+				obj.put("lat",	r2.getString(9));
 				//send event
 				System.out.println(obj.toJSONString());
 				//out.println("READING");
@@ -189,7 +190,7 @@ class ThreadedHandler implements Runnable
 				newEvent.put("eventCount", numEvents);
 				newEvent.put("id",  Integer.parseInt(result.getString(1)) );
 				newEvent.put("name", result.getString(2));
-				newEvent.put("position", result.getString(3));
+				newEvent.put("long", result.getString(3));
 				newEvent.put("location", result.getString(4));
 				newEvent.put("description", result.getString(5));
 				//might have to handle these differently since these are timestamps
@@ -197,6 +198,7 @@ class ThreadedHandler implements Runnable
 				newEvent.put("endTime", result.getString(7));
 				////
 				newEvent.put("numAttendees", Integer.parseInt(result.getString(8)) );
+				obj.put("lat",	result.getString(9));
 				//send info
 				out.println(newEvent.toJSONString());
 			}
@@ -269,15 +271,16 @@ class ThreadedHandler implements Runnable
 			PreparedStatement pstmt = conn.prepareStatement(sql);
 
 			//get all info from the JSON object	
-			pstmt.setString(1,(String) obj.get("id"));
+			pstmt.setString(1,Integer.toString(runNum));
 			pstmt.setString(2,(String) obj.get("name"));
-			pstmt.setString(3,(String) obj.get("position"));
+			pstmt.setString(3,(String) obj.get("long"));
 			pstmt.setString(4,(String) obj.get("location"));
 			pstmt.setString(5,(String) obj.get("description"));
 			pstmt.setString(6,(String) obj.get("startTime"));
 			pstmt.setString(7,(String) obj.get("endTime"));
 			pstmt.setString(8,(String) obj.get("numAttendees"));
-
+			pstmt.setString(9,(String) obj.get("lat"));
+			
 			System.out.println(pstmt);
 			//update the db
 			pstmt.executeUpdate();
