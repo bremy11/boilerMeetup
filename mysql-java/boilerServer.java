@@ -43,7 +43,7 @@ public class boilerServer
 			{  
 				Socket incoming = s.accept();
 				System.out.println("Spawning " + i);
-				Runnable r = new ThreadedHandler(incoming);
+				Runnable r = new ThreadedHandler(incoming, i);
 				Thread t = new Thread(r);
 				t.start();
 				i++;
@@ -63,10 +63,11 @@ class ThreadedHandler implements Runnable
 { 
 	final static String ServerUser = "root";
 	final static String ServerPassword = "1827";
-
-	public ThreadedHandler(Socket i)
+	int runNum;
+	public ThreadedHandler(Socket newSoc, int iteration)
 	{ 
-		incoming = i; 
+		incoming = newSoc;
+		runNum = iteration;
 	}
 
 	public static Connection getConnection() throws SQLException, IOException

@@ -5,11 +5,11 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 import org.json.simple.JSONObject;
-
+import org.json.simple.parser.JSONParser;
 
 public class serverTestClient {
 
-    String serverAddress = "128.10.25.212";
+    String serverAddress = "128.10.12.141";
     
     private BufferedReader in;
     private PrintWriter out;
@@ -31,7 +31,7 @@ public class serverTestClient {
              
              
              obj.put("location", "lawson b146");
-             obj.put("id", "4");
+             obj.put("id", "5");
              obj.put("name", "1");
              obj.put("position", "1");
              obj.put("location", "1");
@@ -41,19 +41,34 @@ public class serverTestClient {
              obj.put("numAttendees", "1");
 			  
 			  //obj.put("command", "ADD-EVENT");
-			 //obj.put("command", "GET-ALL-EVENTS");
+			 obj.put("command", "GET-ALL-EVENTS");
 			 //obj.put("command", "GET-EVENT-INFO");
 			  //obj.put("location", "lawson b146");
-			  obj.put("command", "DEL-EVENT");
+			 // obj.put("command", "DEL-EVENT");
 			  
 			  out.println(obj.toJSONString());
 			  //System.out.println(obj.toJSONString());
              
              // Consume the initial welcoming messages from the server
              String t;
+             
+             Object ob = null;
+             JSONObject jsonObject;
+             JSONParser parser = new JSONParser();
+             
              while((t = in.readLine()) !=null)
              {
-             	System.out.println(t);
+             	//System.out.println(t);
+             	try
+				{
+		         	ob = parser.parse(t);
+		      
+		         	jsonObject = (JSONObject) ob;
+		         	System.out.println(jsonObject.toJSONString());
+		         }catch (Exception e) {
+					System.out.println(e.toString());
+					out.println(e.toString());
+				}
              }
              
          }catch (IOException e)
