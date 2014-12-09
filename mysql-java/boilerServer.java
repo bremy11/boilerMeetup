@@ -11,14 +11,15 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 //sql database setup commands 
-//CREATE DATABASE boilerMeetup
+//CREATE DATABASE boilerMeetup;
+//USE boilerMeetup;
 //CREATE TABLE events (id INTEGER, name VARCHAR(60), position VARCHAR(256), location VARCHAR(256), description VARCHAR(256), startTime TIMESTAMP, endTime TIMESTAMP, numAttendees INTEGER);
 
 ///////////////////////////// Mutlithreaded Server /////////////////////////////
 
 public class boilerServer 
 {
-	final static int port = 3111;
+	final static int port = 3112;
 	/**
 	 *Usage is useless now that we will be using JSON objects
 	 */
@@ -102,8 +103,8 @@ class ThreadedHandler implements Runnable
 			Statement q1 = conn.createStatement();
 			Statement q2 = conn.createStatement();
 
-			ResultSet r1 = stat.executeQuery("SELECT COUNT(id) FROM events");
-			ResultSet r2 = stat.executeQuery( "SELECT * FROM events");
+			ResultSet r1 = q1.executeQuery("SELECT COUNT(id) FROM events");
+			ResultSet r2 = q2.executeQuery( "SELECT * FROM events");
 
 			//Create a JSON Obj
 			JSONObject obj = new JSONObject();
@@ -127,9 +128,12 @@ class ThreadedHandler implements Runnable
 				////
 				obj.put("numAttendees", r2.getString(8));
 				//send event
-				out.print(obj.toJSONStirng());
+				System.out.println(obj.toJSONString());
+				//out.println("READING");
+				out.println(obj.toJSONString());
 			}
-			result.close();
+			r1.close();
+			r2.close();
 
 		}
 		catch (Exception e) {
@@ -154,12 +158,26 @@ class ThreadedHandler implements Runnable
 		Connection conn=null;
 		try
 		{	
-			//get a conncetion
+			String numEvents = null;
 			conn = getConnection();
+			
+			Statement q1 = conn.createStatement();
+			ResultSet r1 = q1.executeQuery("SELECT COUNT(id) FROM events");
+			while(r1.next()) {
+				numEvents = r1.getString(1);
+			}
+			//System.out.println("numEvents = " + numEvents);
+			
+			r1.close();
+			
+			//get a conncetion
+			
 			//set the prepared statement
 			PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM events WHERE id LIKE ?");
-			pstmt.setString(1, obj.get("id"));
+			pstmt.setString(1, (String) obj.get("id"));
 			//execute the query
+			System.out.println(pstmt);
+			
 			ResultSet result = pstmt.executeQuery();
 			
 			//create a new JSON object
@@ -172,14 +190,14 @@ class ThreadedHandler implements Runnable
 				newEvent.put("name", result.getString(2));
 				newEvent.put("position", result.getString(3));
 				newEvent.put("location", result.getString(4));
-				newEvent.put("descriptio", result.getString(5));
+				newEvent.put("description", result.getString(5));
 				//might have to handle these differently since these are timestamps
 				newEvent.put("startTime", result.getString(6));
 				newEvent.put("endTime", result.getString(7));
 				////
 				newEvent.put("numAttendees", Integer.parseInt(result.getString(8)) );
 				//send info
-				out.print(newEvent.toJSONStirng());
+				out.println(newEvent.toJSONString());
 			}
 			//close the result
 			result.close();
@@ -217,7 +235,7 @@ class ThreadedHandler implements Runnable
 			//populate & send the JSON object
 			while(result.next()) {
 				query.put("numEvents", result.getString(1));
-				out.println(query.toJSONStirng());
+				out.println(query.toJSONString());
 			}
 			result.close();
 		}
@@ -240,24 +258,26 @@ class ThreadedHandler implements Runnable
 	 */
 	void addEvent(JSONObject obj, PrintWriter out) {
 		Connection conn = null;
-
+		
 		try{
 			//get a connection & set it to change the db automatically
 			conn = getConnection();
 			conn.setAutoCommit(true);
 			String sql = "INSERT INTO events VALUES(?,?,?,?,?,?,?,?)";
+			//System.out.println("HERE!!!"+ sql);
 			PreparedStatement pstmt = conn.prepareStatement(sql);
 
 			//get all info from the JSON object	
-			pstmt.setString(1, obj.get("id"));
-			pstmt.setString(2, obj.get("name"));
-			pstmt.setString(3, obj.get("position"));
-			pstmt.setString(4, obj.get("location"));
-			pstmt.setString(5, obj.get("description"));
-			pstmt.setString(6, obj.get("startTime"));
-			pstmt.setString(7, obj.get("endTime"));
-			pstmt.setString(8, obj.get("numAttendees"));
+			pstmt.setString(1,(String) obj.get("id"));
+			pstmt.setString(2,(String) obj.get("name"));
+			pstmt.setString(3,(String) obj.get("position"));
+			pstmt.setString(4,(String) obj.get("location"));
+			pstmt.setString(5,(String) obj.get("description"));
+			pstmt.setString(6,(String) obj.get("startTime"));
+			pstmt.setString(7,(String) obj.get("endTime"));
+			pstmt.setString(8,(String) obj.get("numAttendees"));
 
+			System.out.println(pstmt);
 			//update the db
 			pstmt.executeUpdate();
 		}
@@ -284,7 +304,7 @@ class ThreadedHandler implements Runnable
 			//set the prepared statement
 			String sql = "DELETE FROM events WHERE id = ?";
 			PreparedStatement pstmt = conn.prepareStatement(sql);
-			pstmt.setString(1, obj.get("id"));
+			pstmt.setString(1,(String) obj.get("id"));
 			//update the db
 			pstmt.executeUpdate();
 		}
@@ -300,22 +320,26 @@ class ThreadedHandler implements Runnable
 		}
 	}
 
+	//easiest solution, run this command on every request:
+	//DELETE FROM events WHERE endTime < GETDATE()
 	void handleRequest( InputStream inStream, OutputStream outStream) 
 	{
 		Scanner in = new Scanner(inStream);         
 		PrintWriter out = new PrintWriter(outStream, true /* autoFlush */);
-
+		
 		// Get parameters of the call
 		String request = "fail";
-		while(in.hasNextLine()){
+		if(in.hasNextLine()){
 			request=in.nextLine();
 			//...
+		}else {
+		return;
 		}
-
+		
 		Object obj = null;
-		JSONObject jso = (JSONObject) obj;
 
 		JSONParser parser = new JSONParser();
+		
 		try{
 			obj = parser.parse(request);
 		}catch(Exception e)
@@ -342,27 +366,29 @@ class ThreadedHandler implements Runnable
 		 *	numAttendees
 		 */
 
+		System.out.println("req = " +req);
 		try {
 			//perform the requested operation
 			if (req.equals("GET-ALL-EVENTS")) {
+				System.out.println("line = 0");
 				getAllEvents(out);
-			}
-			else if (request.equals("GET-EVENT-INFO")) {
-				getEventInfo(obj, out);
-			}
-			else if (request.equals("GET-CNT")) {
+			}else if (req.equals("GET-EVENT-INFO")) {
+				System.out.println("line = 1");
+				getEventInfo(jsonObject, out);
+			}else if (req.equals("GET-CNT")) {
+				System.out.println("line = 2");
 				getCount(out);
-			}
-			else if (request.equals("ADD-EVENT")) {
-				addEvent(obj, out);
-			}
-			else if (request.equals("DEL-EVENT")) {
-				deleteEvent(obj, out);
+			}else if (req.equals("ADD-EVENT")) {
+				System.out.println("line = 3");
+				addEvent(jsonObject, out);
+			}else if (req.equals("DEL-EVENT")) {
+				System.out.println("line = 4");
+				deleteEvent(jsonObject, out);
 			}
 		}
 		catch (Exception e) {		
-			System.out.println(requestSyntax);
-			out.println(requestSyntax);
+			//System.out.println(requestSyntax);
+			//out.println(requestSyntax);
 
 			System.out.println(e.toString());
 			out.println(e.toString());
