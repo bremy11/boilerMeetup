@@ -176,7 +176,7 @@ class ThreadedHandler implements Runnable
 			
 			//set the prepared statement
 			PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM events WHERE id LIKE ?");
-			pstmt.setString(1, (String) obj.get("id"));
+			pstmt.setString(1, String.format("%d",obj.get("id")));
 			//execute the query
 			System.out.println(pstmt);
 			
@@ -188,17 +188,15 @@ class ThreadedHandler implements Runnable
 			//populate & send the JSON object
 			while(result.next()) {
 				newEvent.put("eventCount", numEvents);
-				newEvent.put("id",  Integer.parseInt(result.getString(1)) );
+				newEvent.put("id",  result.getString(1) );
 				newEvent.put("name", result.getString(2));
 				newEvent.put("longe", result.getString(3));
 				newEvent.put("location", result.getString(4));
 				newEvent.put("description", result.getString(5));
-				//might have to handle these differently since these are timestamps
 				newEvent.put("startTime", result.getString(6));
 				newEvent.put("endTime", result.getString(7));
-				////
-				newEvent.put("numAttendees", Integer.parseInt(result.getString(8)) );
-				obj.put("lat",	result.getString(9));
+				newEvent.put("numAttendees", result.getString(8));
+				newEvent.put("lat",	result.getString(9));
 				//send info
 				out.println(newEvent.toJSONString());
 			}
@@ -266,8 +264,7 @@ class ThreadedHandler implements Runnable
 			//get a connection & set it to change the db automatically
 			conn = getConnection();
 			conn.setAutoCommit(true);
-			String sql = "INSERT INTO events VALUES(?,?,?,?,?,?,?,?)";
-			//System.out.println("HERE!!!"+ sql);
+			String sql = "INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)";
 			PreparedStatement pstmt = conn.prepareStatement(sql);
 
 			//get all info from the JSON object	
