@@ -11,8 +11,8 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 //sql database setup commands 
-//CREATE DATABASE boilerMeetup2;
-//USE boilerMeetup2;
+//CREATE DATABASE boilerMeetup;
+//USE boilerMeetup;
 //CREATE TABLE events (id INTEGER, name VARCHAR(60), longe VARCHAR(256), location VARCHAR(256), description VARCHAR(256), startTime TIMESTAMP, endTime TIMESTAMP, numAttendees INTEGER, lat VARCHAR(256));
 
 ///////////////////////////// Mutlithreaded Server /////////////////////////////
@@ -332,7 +332,6 @@ class ThreadedHandler implements Runnable
 			
 			
 			
-			
 			conn.setAutoCommit(true);
 			String sql = "INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)";
 			PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -424,7 +423,7 @@ class ThreadedHandler implements Runnable
 	void handleRequest( InputStream inStream, OutputStream outStream) 
 	{
 	
-		rmOldEvents();
+		//rmOldEvents();
 	
 	
 		Scanner in = new Scanner(inStream);         
