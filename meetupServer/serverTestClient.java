@@ -9,7 +9,7 @@ import org.json.simple.parser.JSONParser;
 
 public class serverTestClient {
 
-    String serverAddress = "128.10.12.141";
+    String serverAddress = "data.cs.purdue.edu";
     
     private BufferedReader in;
     private PrintWriter out;
@@ -19,7 +19,7 @@ public class serverTestClient {
 
         // Get the server address from a dialog box.
        
-         Socket socket = new Socket(serverAddress, 3112);
+         Socket socket = new Socket(serverAddress, 3111);
         // Make connection and initialize streams
          try{
              

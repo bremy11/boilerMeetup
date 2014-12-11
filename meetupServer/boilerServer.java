@@ -325,6 +325,7 @@ class ThreadedHandler implements Runnable
 			ResultSet r1 = q1.executeQuery("select max(id)+1 from events");
 			while(r1.next()) {
 				eventId = r1.getString(1);
+				if (eventId.equals("NULL")){ eventId = "1";}
 			}
 			//System.out.println("numEvents = " + numEvents);
 			r1.close();
