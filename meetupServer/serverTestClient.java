@@ -19,7 +19,7 @@ public class serverTestClient {
 
         // Get the server address from a dialog box.
        
-         Socket socket = new Socket(serverAddress, 3111);
+         Socket socket = new Socket(serverAddress, 3112);
         // Make connection and initialize streams
          try{
              
@@ -41,8 +41,8 @@ public class serverTestClient {
              obj.put("endTime", "2003-05-17");
              obj.put("numAttendees", "1");
              
-			  obj.put("command", "ATTEND-EVENT");
-			  //obj.put("command", "ADD-EVENT");
+			 // obj.put("command", "ATTEND-EVENT");
+			  obj.put("command", "ADD-EVENT");
 			 //obj.put("command", "GET-ALL-EVENTS");
 			 //obj.put("command", "GET-EVENT-INFO");
 			  //obj.put("location", "lawson b146");
